@@ -1,8 +1,8 @@
 from fastapi import APIRouter, Depends, status, Query
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.products import ProductCreate, ProductUpdate, ProductResponse
+from schemas.product import ProductCreate, ProductUpdate, ProductResponse
 from auth.dependencies import get_db, get_current_user
-import services.products_service as product_service
+import services.product_service as product_service
 
 router = APIRouter(prefix="/products", tags=["Products"])
 

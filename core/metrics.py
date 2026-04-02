@@ -1,7 +1,3 @@
-# core/metrics.py
-# Custom Prometheus metrics helpers.
-# The base /metrics endpoint is auto-exposed via prometheus-fastapi-instrumentator.
-# Add application-specific counters or histograms here.
 from prometheus_client import Counter, Histogram
 
 # Track business events

@@ -1,11 +1,11 @@
 # services/order_service.py
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from repositories.orders_repository import OrderRepository
-from repositories.products_repository import ProductRepository
-from repositories.users_repository import UserRepository
-from schemas.orders import OrderCreate
-from models.orders import Order
+from repositories.order_repository import OrderRepository
+from repositories.product_repository import ProductRepository
+from repositories.user_repository import UserRepository
+from schemas.order import OrderCreate
+from models.order import Order
 from cache.redis_client import delete_pattern
 from tasks.email_tasks import send_order_confirmation
 from core.logging import get_logger

@@ -1,5 +1,3 @@
-# models/order.py
-# Multi-item order design: Order → OrderItem → Product
 from sqlalchemy import String, Float, Integer, ForeignKey, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime

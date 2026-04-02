@@ -1,6 +1,6 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.users import (
+from schemas.user import (
     LoginRequest,
     RegisterRequest,
     TokenResponse,

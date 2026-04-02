@@ -1,8 +1,7 @@
-
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
-from models.orders import Order, OrderItem
+from models.order import Order, OrderItem
 import structlog
 
 logger = structlog.get_logger(__name__)

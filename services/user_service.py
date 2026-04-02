@@ -1,13 +1,13 @@
 from fastapi import HTTPException
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.users import RegisterRequest, LoginRequest, TokenResponse, RegisterResponse
+from schemas.user import RegisterRequest, LoginRequest, TokenResponse, RegisterResponse
 from auth.security import (
     hash_password,
     verify_password,
     create_access_token,
     create_refresh_token,
 )
-from repositories.users_repository import UserRepository
+from repositories.user_repository import UserRepository
 from tasks.email_tasks import send_welcome_email
 from core.logging import get_logger
 
@@ -133,7 +133,7 @@ async def delete_user(user_id: int, db: AsyncSession) -> None:
 
 # create_user alias for backward compat
 async def create_user(user_in, db):
-    from schemas.users import RegisterRequest
+    from schemas.user import RegisterRequest
 
     reg = RegisterRequest(
         email=user_in.email,

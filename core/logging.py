@@ -1,4 +1,3 @@
-# core/logging.py
 import structlog
 import logging
 import sys

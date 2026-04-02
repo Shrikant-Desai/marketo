@@ -2,8 +2,8 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from sqlalchemy import text
 from core.exceptions import register_exception_handlers
-from routers.users import auth_router, users_router
-from routers import products, orders, health
+from routers.user import auth_router, users_router
+from routers import order, product, health
 from contextlib import asynccontextmanager
 from middleware.timing import RequestTimingMiddleware
 from middleware.rate_limit import RateLimitMiddleware
@@ -89,5 +89,5 @@ app.include_router(health.router)
 # /v1 prefixed routes
 app.include_router(auth_router, prefix="/v1")  # /v1/auth/register, /v1/auth/login
 app.include_router(users_router, prefix="/v1")  # /v1/users/me, /v1/users/ (admin)
-app.include_router(products.router, prefix="/v1")  # /v1/products/
-app.include_router(orders.router, prefix="/v1")  # /v1/orders/
+app.include_router(product.router, prefix="/v1")  # /v1/products/
+app.include_router(order.router, prefix="/v1")  # /v1/orders/

@@ -1,4 +1,3 @@
-# models/product.py
 from sqlalchemy import String, Float, Integer, ForeignKey, Text, Boolean, DateTime, func
 from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime

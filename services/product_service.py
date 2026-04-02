@@ -1,10 +1,9 @@
-
 import json
 from fastapi import HTTPException
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.products import ProductCreate, ProductUpdate
-from repositories.products_repository import ProductRepository
+from schemas.product import ProductCreate, ProductUpdate
+from repositories.product_repository import ProductRepository
 from cache.redis_client import get_cache, set_cache, delete_cache, delete_pattern
 from core.logging import get_logger
 
