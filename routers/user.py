@@ -7,6 +7,7 @@ from schemas.user import (
     RegisterResponse,
     UserResponse,
     UserUpdate,
+    UserRoleUpdate,
 )
 from auth.dependencies import get_db, get_current_user, require_admin
 import services.user_service as user_service
@@ -19,10 +20,10 @@ auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
     "/register",
     response_model=RegisterResponse,
     status_code=status.HTTP_201_CREATED,
-    summary="Register a new user account",
+    summary="Register a new user account (role: 'user' or 'seller')",
 )
 async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
-    """Public — no token required."""
+    """Public — no token required. Role defaults to 'user'; may self-select 'seller'."""
     return await user_service.register_user(data, db)
 
 
@@ -62,7 +63,8 @@ async def update_me(
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    return await user_service.update_user(current_user["id"], data.model_dump(), db)
+    # exclude_none=True so unset optional fields are not sent to the service
+    return await user_service.update_user(current_user["id"], data.model_dump(exclude_none=True), db)
 
 
 @users_router.delete(
@@ -86,6 +88,21 @@ async def list_users(
     skip: int = 0,
     limit: int = 20,
     db: AsyncSession = Depends(get_db),
-    _: dict = Depends(require_admin),  # enforces admin role
+    _: dict = Depends(require_admin),
 ):
     return await user_service.list_users(skip=skip, limit=limit, db=db)
+
+
+@users_router.put(
+    "/{user_id}/role",
+    response_model=UserResponse,
+    summary="Update a user's role (admin only)",
+)
+async def update_role(
+    user_id: int,
+    data: UserRoleUpdate,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(require_admin),
+):
+    """Admin-only. Allows promoting to 'seller', 'admin', or demoting to 'user'."""
+    return await user_service.update_user_role(user_id, data.role, db)

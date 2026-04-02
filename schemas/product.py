@@ -1,5 +1,6 @@
-from pydantic import BaseModel, Field, field_validator, model_validator
+from pydantic import BaseModel, Field, field_validator
 from typing import Literal
+from datetime import datetime
 import re, bleach
 
 Category = Literal["electronics", "clothing", "food", "books", "home"]
@@ -34,6 +35,8 @@ class ProductUpdate(BaseModel):
     price: float | None = Field(default=None, gt=0, le=999_999)
     stock: int | None = Field(default=None, ge=0)
     category: Category | None = None
+    # sku is intentionally immutable after creation
+    is_active: bool | None = None  # owner or admin may reactivate/deactivate
 
 
 class ProductResponse(BaseModel):
@@ -46,5 +49,7 @@ class ProductResponse(BaseModel):
     category: str
     is_active: bool
     seller_id: int
+    created_at: datetime
+    updated_at: datetime
 
     model_config = {"from_attributes": True}

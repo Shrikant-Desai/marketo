@@ -33,12 +33,13 @@ async def register_user(data: RegisterRequest, db: AsyncSession) -> RegisterResp
 
     user_data = data.model_dump()
     user_data["password"] = hash_password(user_data.pop("password"))
+    # role is included from RegisterRequest (defaults to "user"; can be "seller")
     user = await repo.create(user_data)
 
     # Send welcome email as async background task — don't block the response
     send_welcome_email.delay(user.email, user.username)
     logger.info(
-        "user_service.register_complete", user_id=user.id, username=user.username
+        "user_service.register_complete", user_id=user.id, username=user.username, role=user.role
     )
 
     return RegisterResponse(
@@ -46,6 +47,8 @@ async def register_user(data: RegisterRequest, db: AsyncSession) -> RegisterResp
         id=user.id,
         username=user.username,
         email=user.email,
+        role=user.role,
+        is_active=user.is_active,
     )
 
 
@@ -99,6 +102,9 @@ async def list_users(skip: int, limit: int, db: AsyncSession) -> list:
 
 
 async def update_user(user_id: int, data: dict, db: AsyncSession):
+    """Update mutable profile fields (username, email, is_active).
+    Expects a dict already filtered with exclude_none=True — no None values.
+    """
     logger.info("user_service.update_user", user_id=user_id, fields=list(data.keys()))
     repo = UserRepository(db)
     user = await repo.find_by_id(user_id)
@@ -106,18 +112,29 @@ async def update_user(user_id: int, data: dict, db: AsyncSession):
         raise HTTPException(status_code=404, detail="User not found")
 
     # Prevent duplicate email/username takeover
-    update_data = {k: v for k, v in data.items() if v is not None}
-    if "email" in update_data:
-        conflict = await repo.find_by_email(update_data["email"])
+    if "email" in data:
+        conflict = await repo.find_by_email(data["email"])
         if conflict and conflict.id != user_id:
             raise HTTPException(status_code=409, detail="Email already in use")
-    if "username" in update_data:
-        conflict = await repo.find_by_username(update_data["username"])
+    if "username" in data:
+        conflict = await repo.find_by_username(data["username"])
         if conflict and conflict.id != user_id:
             raise HTTPException(status_code=409, detail="Username already taken")
 
-    updated = await repo.update(user, update_data)
+    updated = await repo.update(user, data)
     logger.info("user_service.update_complete", user_id=user_id)
+    return updated
+
+
+async def update_user_role(user_id: int, role: str, db: AsyncSession):
+    """Admin-only: promote or demote any user to any role including admin."""
+    logger.info("user_service.update_role", user_id=user_id, new_role=role)
+    repo = UserRepository(db)
+    user = await repo.find_by_id(user_id)
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    updated = await repo.update(user, {"role": role})
+    logger.info("user_service.role_updated", user_id=user_id, role=role)
     return updated
 
 
@@ -129,17 +146,3 @@ async def delete_user(user_id: int, db: AsyncSession) -> None:
         raise HTTPException(status_code=404, detail="User not found")
     await repo.delete(user)
     logger.info("user_service.delete_complete", user_id=user_id)
-
-
-# create_user alias for backward compat
-async def create_user(user_in, db):
-    from schemas.user import RegisterRequest
-
-    reg = RegisterRequest(
-        email=user_in.email,
-        username=user_in.username,
-        password=user_in.password,
-    )
-    from services.user_service import register_user
-
-    return await register_user(reg, db)

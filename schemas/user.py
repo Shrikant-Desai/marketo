@@ -1,9 +1,14 @@
 from pydantic import BaseModel, EmailStr, Field, field_validator
+from typing import Literal
 from datetime import datetime
 import bleach
 
 
 # ── Auth ─────────────────────────────────────────────────────────────────────
+
+# Roles users can self-select. "admin" is NOT allowed at registration —
+# it must be granted by an existing admin via PUT /users/{id}/role.
+SelfSelectRole = Literal["user", "seller"]
 
 
 class LoginRequest(BaseModel):
@@ -19,6 +24,7 @@ class RegisterRequest(BaseModel):
     email: EmailStr
     username: str = Field(min_length=3, max_length=50)
     password: str = Field(min_length=8, max_length=128)
+    role: SelfSelectRole = "user"  # user may self-select "user" or "seller"
 
     model_config = {"extra": "forbid"}
 
@@ -40,24 +46,23 @@ class RegisterResponse(BaseModel):
     id: int
     username: str
     email: str
+    role: str
+    is_active: bool
 
 
 # ── User CRUD ─────────────────────────────────────────────────────────────────
-
-
-class UserBase(BaseModel):
-    username: str
-    email: EmailStr
-
-
-class UserCreate(UserBase):
-    password: str = Field(min_length=8)
 
 
 class UserUpdate(BaseModel):
     username: str | None = Field(default=None, min_length=3, max_length=50)
     email: EmailStr | None = None
     is_active: bool | None = None
+
+
+class UserRoleUpdate(BaseModel):
+    """Admin-only schema — allows promoting/demoting any role including admin."""
+
+    role: Literal["user", "seller", "admin"]
 
 
 class UserResponse(BaseModel):

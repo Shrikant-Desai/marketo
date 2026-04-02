@@ -77,13 +77,30 @@ async def create_product(product_in: ProductCreate, seller_id: int, db: AsyncSes
     return product
 
 
-async def update_product(product_id: int, product_in: ProductUpdate, db: AsyncSession):
-    logger.info("product_service.update", product_id=product_id)
+async def update_product(
+    product_id: int, product_in: ProductUpdate, seller_id: int, db: AsyncSession
+):
+    """Update a product. Only the seller who owns it (or an admin) may do this.
+    Ownership is verified here; callers must pass the current user's id as seller_id.
+    Admins bypass the ownership check — that distinction is enforced in the router.
+    """
+    logger.info("product_service.update", product_id=product_id, seller_id=seller_id)
     repo = ProductRepository(db)
     product = await repo.find_by_id(product_id)
     if not product or not product.is_active:
         logger.warning("product_service.update_not_found", product_id=product_id)
         raise HTTPException(status_code=404, detail="Product not found")
+
+    if product.seller_id != seller_id:
+        logger.warning(
+            "product_service.update_forbidden",
+            product_id=product_id,
+            seller_id=seller_id,
+            actual_seller=product.seller_id,
+        )
+        raise HTTPException(
+            status_code=403, detail="You can only update your own products"
+        )
 
     update_data = product_in.model_dump(exclude_none=True)
     product = await repo.update(product, update_data)

@@ -5,7 +5,7 @@ A production-grade e-commerce backend API built with **FastAPI**. Supports full 
 ## Features
 
 - **JWT Authentication** — Register/login with access + refresh tokens; email-or-username login
-- **Role-Based Access Control** — `user`, `admin` roles; all endpoints protected by default
+- **Role-Based Access Control** — `user`, `seller`, `admin` roles; all endpoints protected by default
 - **Product Management** — CRUD + PostgreSQL full-text search; Redis-cached reads; soft deletes
 - **Multi-Item Orders** — Place orders with multiple products; server-side pricing; stock reservation; cancel with stock restore
 - **Background Tasks** — Celery workers for welcome emails & order confirmations
@@ -18,17 +18,17 @@ A production-grade e-commerce backend API built with **FastAPI**. Supports full 
 
 ## Technology Stack
 
-| Layer | Technology |
-|---|---|
-| Framework | FastAPI + Uvicorn / Gunicorn |
-| Database | PostgreSQL + SQLAlchemy (async) |
-| Migrations | Alembic |
-| Caching / Broker | Redis |
-| Task Worker | Celery |
-| Auth | python-jose (JWT) + passlib (bcrypt) |
-| Logging | structlog |
-| Validation | Pydantic v2 + bleach |
-| Containerization | Docker + Docker Compose |
+| Layer            | Technology                           |
+| ---------------- | ------------------------------------ |
+| Framework        | FastAPI + Uvicorn / Gunicorn         |
+| Database         | PostgreSQL + SQLAlchemy (async)      |
+| Migrations       | Alembic                              |
+| Caching / Broker | Redis                                |
+| Task Worker      | Celery                               |
+| Auth             | python-jose (JWT) + passlib (bcrypt) |
+| Logging          | structlog                            |
+| Validation       | Pydantic v2 + bleach                 |
+| Containerization | Docker + Docker Compose              |
 
 ## Architecture
 
@@ -102,46 +102,49 @@ celery -A tasks.celery_app.celery_app worker --loglevel=info
 
 ## Environment Variables
 
-| Variable | Required | Default | Description |
-|---|---|---|---|
-| `JWT_SECRET_KEY` | ✅ | — | Secret for JWT signing. Use `secrets.token_hex(32)` |
-| `DATABASE_URL` | ✅ | — | `postgresql+asyncpg://user:pass@host/db` |
-| `REDIS_URL` | | `redis://localhost:6379/0` | Redis connection URL |
-| `ENVIRONMENT` | | `development` | `development` \| `staging` \| `production` |
-| `DEBUG` | | `false` | Enables SQL query logging + pretty logs |
-| `ACCESS_TOKEN_EXPIRE_MINUTES` | | `30` | JWT access token lifetime |
-| `REFRESH_TOKEN_EXPIRE_DAYS` | | `7` | JWT refresh token lifetime |
-| `SMTP_*` | | — | SMTP settings for email tasks (optional in dev) |
-| `ENABLE_METRICS` | | `true` | Expose `/metrics` Prometheus endpoint |
+| Variable                      | Required | Default                    | Description                                         |
+| ----------------------------- | -------- | -------------------------- | --------------------------------------------------- |
+| `JWT_SECRET_KEY`              | ✅       | —                          | Secret for JWT signing. Use `secrets.token_hex(32)` |
+| `DATABASE_URL`                | ✅       | —                          | `postgresql+asyncpg://user:pass@host/db`            |
+| `REDIS_URL`                   |          | `redis://localhost:6379/0` | Redis connection URL                                |
+| `ENVIRONMENT`                 |          | `development`              | `development` \| `staging` \| `production`          |
+| `DEBUG`                       |          | `false`                    | Enables SQL query logging + pretty logs             |
+| `ACCESS_TOKEN_EXPIRE_MINUTES` |          | `30`                       | JWT access token lifetime                           |
+| `REFRESH_TOKEN_EXPIRE_DAYS`   |          | `7`                        | JWT refresh token lifetime                          |
+| `SMTP_*`                      |          | —                          | SMTP settings for email tasks (optional in dev)     |
+| `ENABLE_METRICS`              |          | `true`                     | Expose `/metrics` Prometheus endpoint               |
 
 ## API Endpoints
 
 ### Public (no auth required)
-| Method | Path | Description |
-|---|---|---|
-| `POST` | `/v1/auth/register` | Register a new account |
-| `POST` | `/v1/auth/login` | Get access + refresh tokens |
-| `GET` | `/health` | Liveness probe |
-| `GET` | `/health/ready` | Readiness probe (checks DB + Redis) |
-| `GET` | `/metrics` | Prometheus metrics |
+
+| Method | Path                | Description                         |
+| ------ | ------------------- | ----------------------------------- |
+| `POST` | `/v1/auth/register` | Register a new account              |
+| `POST` | `/v1/auth/login`    | Get access + refresh tokens         |
+| `GET`  | `/health`           | Liveness probe                      |
+| `GET`  | `/health/ready`     | Readiness probe (checks DB + Redis) |
+| `GET`  | `/metrics`          | Prometheus metrics                  |
 
 ### Protected (Bearer token required)
-| Method | Path | Description |
-|---|---|---|
-| `GET` | `/v1/users/me` | Get current user profile |
-| `PUT` | `/v1/users/me` | Update current user profile |
-| `DELETE` | `/v1/users/me` | Delete current user account |
-| `GET` | `/v1/users/` | List all users **(admin only)** |
-| `GET` | `/v1/products/` | List products (cached) |
-| `GET` | `/v1/products/search?q=...` | Full-text product search |
-| `GET` | `/v1/products/{id}` | Get product by ID (cached) |
-| `POST` | `/v1/products/` | Create a product |
-| `PUT` | `/v1/products/{id}` | Update a product |
-| `DELETE` | `/v1/products/{id}` | Soft-delete a product (owner only) |
-| `POST` | `/v1/orders/` | Place a new order |
-| `GET` | `/v1/orders/my` | List my orders |
-| `GET` | `/v1/orders/{id}` | Get order (owner only) |
-| `POST` | `/v1/orders/{id}/cancel` | Cancel pending order (restores stock) |
+
+| Method   | Path                        | Description                           |
+| -------- | --------------------------- | ------------------------------------- |
+| `GET`    | `/v1/users/me`              | Get current user profile              |
+| `PUT`    | `/v1/users/me`              | Update current user profile           |
+| `DELETE` | `/v1/users/me`              | Delete current user account           |
+| `GET`    | `/v1/users/`                | List all users **(admin only)**       |
+| `GET`    | `/v1/products/`             | List products (cached)                |
+| `GET`    | `/v1/products/search?q=...` | Full-text product search              |
+| `GET`    | `/v1/products/{id}`         | Get product by ID (cached)            |
+| `POST`   | `/v1/products/`             | Create a product                      |
+| `PUT`    | `/v1/products/{id}`         | Update a product                      |
+| `DELETE` | `/v1/products/{id}`         | Soft-delete a product (owner only)    |
+| `POST`   | `/v1/orders/`               | Place a new order                     |
+| `GET`    | `/v1/orders/my`             | List my orders                        |
+| `GET`    | `/v1/orders/{id}`           | Get order (owner only)                |
+| `POST`   | `/v1/orders/{id}/cancel`    | Cancel pending order (restores stock)   |
+| `PUT`    | `/v1/users/{id}/role`       | Change a user's role **(admin only)**   |
 
 ## Useful Docker Commands
 
@@ -181,3 +184,24 @@ alembic upgrade head
 # Roll back one migration
 alembic downgrade -1
 ```
+
+## Role-Based Access Control
+
+All routes require a valid Bearer token unless marked **public**. Roles are set at registration (`user` / `seller`) or granted by an admin (`admin`).
+
+| Action                          | `user`      | `seller`          | `admin`    |
+| ------------------------------- | ----------- | ----------------- | ---------- |
+| Register / Login                | ✅ Public   | ✅ Public         | ✅ Public  |
+| View products (list / search)   | ✅          | ✅                | ✅         |
+| View single product             | ✅          | ✅                | ✅         |
+| Create product                  | ❌          | ✅                | ✅         |
+| Update own product              | ❌          | ✅ (owner only)   | ✅ (any)   |
+| Soft-delete own product         | ❌          | ✅ (owner only)   | ✅ (any)   |
+| Place an order                  | ✅          | ✅                | ✅         |
+| View own orders                 | ✅          | ✅                | ✅         |
+| Cancel own pending order        | ✅          | ✅                | ✅         |
+| Update own profile              | ✅          | ✅                | ✅         |
+| Delete own account              | ✅          | ✅                | ✅         |
+| List all users                  | ❌          | ❌                | ✅         |
+| Change any user's role          | ❌          | ❌                | ✅         |
+| Health / metrics endpoints      | ✅ Public   | ✅ Public         | ✅ Public  |

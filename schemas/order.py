@@ -1,4 +1,5 @@
 from pydantic import BaseModel, Field, model_validator
+from datetime import datetime
 
 
 class OrderItemCreate(BaseModel):
@@ -30,5 +31,6 @@ class OrderResponse(BaseModel):
     status: str
     total: float
     items: list[OrderItemResponse]
-    created_at: str | None = None
+    created_at: datetime
+    updated_at: datetime
     model_config = {"from_attributes": True}
