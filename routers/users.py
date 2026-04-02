@@ -1,15 +1,91 @@
 from fastapi import APIRouter, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from schemas.users import UserCreate, UserResponse
-from core.dependencies import get_db, get_current_user
-import services.users as user_service
+from schemas.users import (
+    LoginRequest,
+    RegisterRequest,
+    TokenResponse,
+    RegisterResponse,
+    UserResponse,
+    UserUpdate,
+)
+from auth.dependencies import get_db, get_current_user, require_admin
+import services.user_service as user_service
 
-router = APIRouter(prefix="/users", tags=["Users"])
+# ── Auth router (public) ───────────────────────────────────────────────────
+auth_router = APIRouter(prefix="/auth", tags=["Authentication"])
 
-@router.post("/", response_model=UserResponse, status_code=status.HTTP_201_CREATED)
-async def create_user(user: UserCreate, db: AsyncSession = Depends(get_db)):
-    return await user_service.create_user(user, db)
 
-@router.get("/me", response_model=UserResponse)
-async def get_me(db: AsyncSession = Depends(get_db), current_user: dict = Depends(get_current_user)):
+@auth_router.post(
+    "/register",
+    response_model=RegisterResponse,
+    status_code=status.HTTP_201_CREATED,
+    summary="Register a new user account",
+)
+async def register(data: RegisterRequest, db: AsyncSession = Depends(get_db)):
+    """Public — no token required."""
+    return await user_service.register_user(data, db)
+
+
+@auth_router.post(
+    "/login",
+    response_model=TokenResponse,
+    summary="Login with email or username to get JWT tokens",
+)
+async def login(data: LoginRequest, db: AsyncSession = Depends(get_db)):
+    """Public — no token required."""
+    return await user_service.login_user(data, db)
+
+
+# ── Users router (protected) ──────────────────────────────────────────────
+users_router = APIRouter(prefix="/users", tags=["Users"])
+
+
+@users_router.get(
+    "/me",
+    response_model=UserResponse,
+    summary="Get current user profile",
+)
+async def get_me(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
     return await user_service.get_user_by_id(current_user["id"], db)
+
+
+@users_router.put(
+    "/me",
+    response_model=UserResponse,
+    summary="Update current user profile",
+)
+async def update_me(
+    data: UserUpdate,
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    return await user_service.update_user(current_user["id"], data.model_dump(), db)
+
+
+@users_router.delete(
+    "/me",
+    status_code=status.HTTP_204_NO_CONTENT,
+    summary="Delete current user account",
+)
+async def delete_me(
+    db: AsyncSession = Depends(get_db),
+    current_user: dict = Depends(get_current_user),
+):
+    await user_service.delete_user(current_user["id"], db)
+
+
+@users_router.get(
+    "/",
+    response_model=list[UserResponse],
+    summary="List all users (admin only)",
+)
+async def list_users(
+    skip: int = 0,
+    limit: int = 20,
+    db: AsyncSession = Depends(get_db),
+    _: dict = Depends(require_admin),  # enforces admin role
+):
+    return await user_service.list_users(skip=skip, limit=limit, db=db)

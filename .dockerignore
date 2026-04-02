@@ -1,22 +1,45 @@
-__pycache__
+# Build artifacts and caches
+__pycache__/
 *.pyc
 *.pyo
 *.pyd
 .Python
+
+# Virtual environments
 env/
 venv/
 .venv/
 env.bak/
 venv.bak/
+
+# Secrets — never bundle into the image
 .env
 .env.*
+
+# Git
 .git/
 .gitignore
+
+# Docker meta files (not needed inside image)
 .dockerignore
-Dockerfile
 docker-compose.yml
+
+# Testing artifacts
 .pytest_cache/
 .coverage
 htmlcov/
+tests/
+
+# Logs
 *.log
+
+# IDE
+.vscode/
+.idea/
+
+# Documentation (not needed in image)
+*.md
+docs/
+
+# Alembic ini (migrations run separately)
 alembic.ini

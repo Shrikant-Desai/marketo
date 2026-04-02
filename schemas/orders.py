@@ -1,17 +1,34 @@
-from pydantic import BaseModel
-from datetime import datetime
+from pydantic import BaseModel, Field, model_validator
+
+
+class OrderItemCreate(BaseModel):
+    product_id: int = Field(gt=0)
+    quantity: int = Field(ge=1, le=100)
+
 
 class OrderCreate(BaseModel):
+    items: list[OrderItemCreate] = Field(min_length=1, max_length=50)
+
+    @model_validator(mode="after")
+    def no_duplicate_products(self) -> "OrderCreate":
+        ids = [item.product_id for item in self.items]
+        if len(ids) != len(set(ids)):
+            raise ValueError("Duplicate products in order — combine quantities instead")
+        return self
+
+
+class OrderItemResponse(BaseModel):
     product_id: int
     quantity: int
+    unit_price: float
+    model_config = {"from_attributes": True}
+
 
 class OrderResponse(BaseModel):
     id: int
-    user_id: int
-    product_id: int
-    quantity: int
-    total_price: float
+    buyer_id: int
     status: str
-    created_at: datetime
-
+    total: float
+    items: list[OrderItemResponse]
+    created_at: str | None = None
     model_config = {"from_attributes": True}

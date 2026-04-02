@@ -4,6 +4,7 @@ from sqlalchemy.orm import Mapped, mapped_column, relationship
 from datetime import datetime
 from models.base import Base
 
+
 class User(Base):
     __tablename__ = "users"
 
@@ -19,4 +20,4 @@ class User(Base):
     )
 
     products: Mapped[list["Product"]] = relationship("Product", back_populates="seller")
-    orders: Mapped[list["Order"]] = relationship("Order", back_populates="user")
+    orders: Mapped[list["Order"]] = relationship("Order", back_populates="buyer")
