@@ -40,6 +40,3 @@ tests/
 # Documentation (not needed in image)
 *.md
 docs/
-
-# Alembic ini (migrations run separately)
-alembic.ini

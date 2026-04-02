@@ -20,6 +20,7 @@ pydantic==2.10.4
 pydantic-settings==2.7.0
 pydantic[email]
 bleach==6.2.0
+email-validator
 
 # Caching
 redis==5.2.1

@@ -39,7 +39,7 @@ class Settings(BaseSettings):
     enable_metrics: bool = True
     enable_tracing: bool = False
 
-    model_config = {"env_file": ".env"}
+    model_config = {"env_file": ".env", "extra": "ignore"}
 
     @property
     def is_production(self) -> bool:
