@@ -12,16 +12,37 @@ class ProductRepository:
         self.db = db
 
     async def find_by_id(self, product_id: int) -> Product | None:
+        """Return an active product by PK; soft-deleted products return None."""
         logger.debug("product_repo.find_by_id", product_id=product_id)
         result = await self.db.execute(
-            select(Product).where(Product.id == product_id)
+            select(Product).where(
+                Product.id == product_id,
+                Product.is_active == True,  # noqa: E712
+            )
+        )
+        return result.scalar_one_or_none()
+
+    async def find_by_sku(self, sku: str) -> Product | None:
+        """Return the product with this SKU regardless of active status."""
+        logger.debug("product_repo.find_by_sku", sku=sku)
+        result = await self.db.execute(
+            select(Product).where(Product.sku == sku)
         )
         return result.scalar_one_or_none()
 
     async def find_by_ids(self, ids: list[int]) -> list[Product]:
-        """Bulk-load products avoiding N+1 queries."""
+        """Bulk-load **active** products avoiding N+1 queries.
+
+        Soft-deleted products are excluded so that order validation
+        correctly surfaces the 'no longer available' error.
+        """
         logger.debug("product_repo.find_by_ids", ids=ids, count=len(ids))
-        result = await self.db.execute(select(Product).where(Product.id.in_(ids)))
+        result = await self.db.execute(
+            select(Product).where(
+                Product.id.in_(ids),
+                Product.is_active == True,  # noqa: E712
+            )
+        )
         return list(result.scalars().all())
 
     async def find_all(

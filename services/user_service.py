@@ -39,7 +39,10 @@ async def register_user(data: RegisterRequest, db: AsyncSession) -> RegisterResp
     # Send welcome email as async background task — don't block the response
     send_welcome_email.delay(user.email, user.username)
     logger.info(
-        "user_service.register_complete", user_id=user.id, username=user.username, role=user.role
+        "user_service.register_complete",
+        user_id=user.id,
+        username=user.username,
+        role=user.role,
     )
 
     return RegisterResponse(

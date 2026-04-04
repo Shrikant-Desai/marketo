@@ -1,5 +1,5 @@
 import json
-from fastapi import HTTPException
+from fastapi import HTTPException, status
 from fastapi.encoders import jsonable_encoder
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.product import ProductCreate, ProductUpdate
@@ -44,6 +44,8 @@ async def get_product_by_id(product_id: int, db: AsyncSession):
     repo = ProductRepository(db)
     product = await repo.find_by_id(product_id)
     if not product:
+        # Evict any stale cache (e.g. product was active when cached, now deleted)
+        await delete_cache(cache_key)
         logger.warning("product_service.not_found", product_id=product_id)
         raise HTTPException(status_code=404, detail="Product not found")
 
@@ -69,6 +71,16 @@ async def create_product(product_in: ProductCreate, seller_id: int, db: AsyncSes
         seller_id=seller_id,
     )
     repo = ProductRepository(db)
+
+    # Guard: check SKU uniqueness before hitting the DB constraint
+    existing = await repo.find_by_sku(product_in.sku)
+    if existing:
+        logger.warning("product_service.sku_conflict", sku=product_in.sku)
+        raise HTTPException(
+            status_code=status.HTTP_409_CONFLICT,
+            detail=f"SKU '{product_in.sku}' already exists",
+        )
+
     data = product_in.model_dump()
     data["seller_id"] = seller_id
     product = await repo.create(data)

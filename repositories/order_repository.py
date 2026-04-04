@@ -51,7 +51,18 @@ class OrderRepository:
             self.db.add(order_item)
 
         await self.db.flush()
-        await self.db.refresh(order)
+
+        # Eagerly reload to avoid MissingGreenlet on updated_at / items.
+        # populate_existing=True forces SQLAlchemy to overwrite the expired
+        # scalar attributes (like updated_at) and reload relationships.
+        result = await self.db.execute(
+            select(Order)
+            .options(selectinload(Order.items))
+            .execution_options(populate_existing=True)
+            .where(Order.id == order.id)
+        )
+        order = result.scalar_one()
+
         logger.info("order_repo.created", order_id=order.id, total=total)
         return order
 
@@ -61,5 +72,15 @@ class OrderRepository:
         if order:
             order.status = status
             await self.db.flush()
+            
+            # Eagerly reload to prevent MissingGreenlet on updated_at
+            result = await self.db.execute(
+                select(Order)
+                .options(selectinload(Order.items))
+                .execution_options(populate_existing=True)
+                .where(Order.id == order_id)
+            )
+            order = result.scalar_one()
+            
             logger.info("order_repo.status_updated", order_id=order_id, status=status)
         return order

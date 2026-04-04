@@ -7,7 +7,6 @@ from repositories.user_repository import UserRepository
 from schemas.order import OrderCreate
 from models.order import Order
 from cache.redis_client import delete_pattern
-from tasks.email_tasks import send_order_confirmation
 from core.logging import get_logger
 
 logger = get_logger(__name__)
@@ -81,19 +80,16 @@ async def create_order(data: OrderCreate, buyer_id: int, db: AsyncSession) -> Or
     await delete_pattern("product:*")
     await delete_pattern("products:list:*")
 
-    # 6. Send confirmation email asynchronously — don't block the response
+    # 6. Resolve the buyer's email so the router can dispatch the
+    #    confirmation email AFTER the DB session commits.
     user_repo = UserRepository(db)
     user = await user_repo.find_by_id(buyer_id)
-    if user:
-        send_order_confirmation.delay(
-            user_email=user.email,
-            username=user.username,
-            order_id=order.id,
-            total=total,
-        )
+    email = user.email if user else None
+    username = user.username if user else ""
 
     logger.info("order_service.create_complete", order_id=order.id, total=total)
-    return order
+    # Return order + email metadata; router handles dispatch post-commit
+    return order, email, username, total
 
 
 async def get_order(order_id: int, buyer_id: int, db: AsyncSession) -> Order:

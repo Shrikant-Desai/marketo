@@ -1,8 +1,9 @@
-from fastapi import APIRouter, Depends, status
+from fastapi import APIRouter, BackgroundTasks, Depends, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from schemas.order import OrderCreate, OrderResponse
 from auth.dependencies import get_db, get_current_user
 import services.order_service as order_service
+from tasks.email_tasks import send_order_confirmation
 
 router = APIRouter(prefix="/orders", tags=["Orders"])
 
@@ -15,10 +16,25 @@ router = APIRouter(prefix="/orders", tags=["Orders"])
 )
 async def create_order(
     order: OrderCreate,
+    background_tasks: BackgroundTasks,
     db: AsyncSession = Depends(get_db),
     current_user: dict = Depends(get_current_user),
 ):
-    return await order_service.create_order(order, current_user["id"], db)
+    order_obj, user_email, username, total = await order_service.create_order(
+        order, current_user["id"], db
+    )
+    # Dispatch AFTER the service returns so the DB session commit
+    # (which happens in get_db after this route exits) has already
+    # persisted the order before Celery picks up the task.
+    if user_email:
+        background_tasks.add_task(
+            send_order_confirmation.delay,
+            user_email=user_email,
+            username=username,
+            order_id=order_obj.id,
+            total=total,
+        )
+    return order_obj
 
 
 @router.get(
